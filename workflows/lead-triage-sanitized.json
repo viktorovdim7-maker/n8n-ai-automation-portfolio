@@ -1,0 +1,65 @@
+{
+  "name": "Lead Triage - Sanitized Portfolio Example",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-lead-triage",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\n\nconst name = String(body.name ?? '').trim();\nconst email = String(body.email ?? '').trim();\nconst message = String(body.message ?? '').trim();\nconst budget = Number(body.budget ?? 0);\n\nif (!name || !email || !message) {\n  throw new Error('Missing required fields: name, email, message');\n}\n\nconst urgent = /urgent|asap|today|tomorrow|24\\s*hours?/i.test(message);\nconst highValue = Number.isFinite(budget) && budget >= 250;\n\nlet priority = 'normal';\nif (urgent && highValue) priority = 'high';\nelse if (urgent || highValue) priority = 'medium';\n\nreturn [{\n  json: {\n    ok: true,\n    lead: { name, email, message, budget },\n    triage: {\n      priority,\n      urgent,\n      highValue,\n      nextAction: priority === 'high'\n        ? 'reply_now'\n        : priority === 'medium'\n          ? 'review_today'\n          : 'queue'\n    }\n  }\n}];"
+      },
+      "id": "validate-classify-node",
+      "name": "Validate + Classify",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "response-node",
+      "name": "Return Structured Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Lead Webhook": {
+      "main": [[{
+        "node": "Validate + Classify",
+        "type": "main",
+        "index": 0
+      }]]
+    },
+    "Validate + Classify": {
+      "main": [[{
+        "node": "Return Structured Result",
+        "type": "main",
+        "index": 0
+      }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "portfolio-sanitized-example",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
