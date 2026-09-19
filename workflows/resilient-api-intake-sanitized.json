@@ -1,0 +1,100 @@
+{
+  "name": "Resilient API Intake - Sanitized Portfolio Example",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-resilient-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst externalId = String(body.externalId ?? '').trim();\nconst email = String(body.email ?? '').trim().toLowerCase();\nconst message = String(body.message ?? '').trim();\nif (!externalId || !email || !message) throw new Error('externalId, email and message are required');\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error('Invalid email');\nreturn [{ json: { externalId, email, message, receivedAt: new Date().toISOString() } }];"
+      },
+      "id": "validate",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {"id": "urgent-condition", "leftValue": "={{ /urgent|asap|today/i.test($json.message) }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route",
+      "name": "Urgency Route",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, priority: 'high', nextAction: 'review_now', idempotencyKey: 'lead:' + $json.externalId } }];"
+      },
+      "id": "high",
+      "name": "Prepare High Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, priority: 'normal', nextAction: 'queue', idempotencyKey: 'lead:' + $json.externalId } }];"
+      },
+      "id": "normal",
+      "name": "Prepare Normal Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, externalId: $json.externalId, priority: $json.priority, nextAction: $json.nextAction, idempotencyKey: $json.idempotencyKey } }}",
+        "options": {}
+      },
+      "id": "response-high",
+      "name": "Return High Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1180, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, externalId: $json.externalId, priority: $json.priority, nextAction: $json.nextAction, idempotencyKey: $json.idempotencyKey } }}",
+        "options": {}
+      },
+      "id": "response-normal",
+      "name": "Return Normal Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1180, 380]
+    }
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Validate + Normalize", "type": "main", "index": 0}]]},
+    "Validate + Normalize": {"main": [[{"node": "Urgency Route", "type": "main", "index": 0}]]},
+    "Urgency Route": {"main": [[{"node": "Prepare High Priority", "type": "main", "index": 0}], [{"node": "Prepare Normal Priority", "type": "main", "index": 0}]]},
+    "Prepare High Priority": {"main": [[{"node": "Return High Result", "type": "main", "index": 0}]]},
+    "Prepare Normal Priority": {"main": [[{"node": "Return Normal Result", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}
