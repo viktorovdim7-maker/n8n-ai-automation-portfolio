@@ -8,7 +8,7 @@ Reduce manual work in a small e-commerce operation by moving repetitive research
 
 - Linux VPS
 - Docker
-- n8n-style workflow orchestration
+- n8n workflow orchestration
 - OpenAI API
 - Etsy seller API
 - Printful-connected fulfilment flow
