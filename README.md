@@ -34,15 +34,24 @@ See:
 
 - [Case study](docs/CASE_STUDY.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Sanitized n8n example](workflows/lead-triage-sanitized.json)
+- [Automation services](docs/SERVICE_OFFER.md)
+- [Lead triage workflow](workflows/lead-triage-sanitized.json)
+- [Resilient API intake workflow](workflows/resilient-api-intake-sanitized.json)
+- [Resilient API intake notes](docs/RESILIENT_API_INTAKE.md)
 
-## Example workflow: fast lead triage
+## Example workflows
 
-The included workflow demonstrates a common paid automation task:
+### Fast lead triage
 
 `Webhook → validate payload → classify lead → prepare structured output → return response`
 
-It is intentionally credential-free and safe to publish. In a client project, the classification step can be replaced with OpenAI, a CRM, a database, email, Slack, Telegram or another API.
+A compact credential-free example of validation and classification.
+
+### Resilient API intake
+
+`Webhook → validate/normalize → route by business rule → prepare deterministic output → respond`
+
+A more complete sanitized example showing branching, stable external IDs and an idempotency-key pattern for retry-safe downstream integrations.
 
 ## How I work
 
